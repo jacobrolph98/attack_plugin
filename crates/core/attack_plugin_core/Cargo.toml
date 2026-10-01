@@ -1,0 +1,17 @@
+[package]
+name = "attack_plugin_core"
+version.workspace = true
+edition.workspace = true
+
+[features]
+default = []
+2d = ["dep:avian2d"]
+3d = ["dep:avian3d"]
+melee = []
+ranged = []
+
+[dependencies]
+attack_plugin_shared = { path = "../../shared/attack_plugin_shared", version="0.1.0" }
+avian3d = { workspace = true, optional = true }
+avian2d = { workspace = true, optional = true }
+bevy.workspace = true

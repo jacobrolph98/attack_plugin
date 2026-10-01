@@ -1,0 +1,13 @@
+[workspace]
+members = ["crates/*/*"]
+resolver = "2"
+
+[workspace.package]
+name = "attack_plugin"
+version = "0.1.0"
+edition = "2024"
+
+[workspace.dependencies]
+bevy = { version = "0.19.1", features = ["debug"] }
+avian2d = { version = "0.7" }
+avian3d = { version = "0.7" }

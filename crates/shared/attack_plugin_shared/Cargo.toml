@@ -1,0 +1,7 @@
+[package]
+name = "attack_plugin_shared"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+bevy.workspace = true

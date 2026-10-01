@@ -1,0 +1,10 @@
+[package]
+name = "attack_plugin_3d"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+attack_plugin_core = { path = "../../core/attack_plugin_core", version = "0.1.0", features = ["3d"] }
+attack_plugin_shared = { path = "../../shared/attack_plugin_shared", version = "0.1.0" }
+bevy.workspace = true
+avian3d.workspace = true
