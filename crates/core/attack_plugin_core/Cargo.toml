@@ -11,7 +11,7 @@ melee = []
 ranged = []
 
 [dependencies]
-attack_plugin_shared = { path = "../../shared/attack_plugin_shared", version="0.1.0" }
+attack_lightyear = { path = "../../net/attack_lightyear", version="0.1.0" }
 avian3d = { workspace = true, optional = true }
 avian2d = { workspace = true, optional = true }
 bevy.workspace = true

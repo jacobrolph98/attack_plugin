@@ -374,11 +374,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "attack_lightyear"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "attack_plugin_2d"
 version = "0.1.0"
 dependencies = [
+ "attack_lightyear",
  "attack_plugin_core",
- "attack_plugin_shared",
  "avian2d",
  "bevy",
 ]
@@ -387,8 +394,8 @@ dependencies = [
 name = "attack_plugin_3d"
 version = "0.1.0"
 dependencies = [
+ "attack_lightyear",
  "attack_plugin_core",
- "attack_plugin_shared",
  "avian3d",
  "bevy",
 ]
@@ -397,16 +404,9 @@ dependencies = [
 name = "attack_plugin_core"
 version = "0.1.0"
 dependencies = [
- "attack_plugin_shared",
+ "attack_lightyear",
  "avian2d",
  "avian3d",
- "bevy",
-]
-
-[[package]]
-name = "attack_plugin_shared"
-version = "0.1.0"
-dependencies = [
  "bevy",
 ]
 

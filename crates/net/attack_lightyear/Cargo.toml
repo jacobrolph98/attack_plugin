@@ -1,5 +1,5 @@
 [package]
-name = "attack_plugin_shared"
+name = "attack_lightyear"
 version.workspace = true
 edition.workspace = true
 
