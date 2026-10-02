@@ -46,17 +46,14 @@ pub fn ray_sweep_2d(
         melee_entity
     ) in &mut meleer_q {
         if stage.time_next_ray > time.elapsed_secs() { continue };
-        info!("Stage: {}", stage.stage);
         let Melee::RaySweep {count, interval, formula}  = meleer.melee_type else { continue };
         stage.time_next_ray += interval;
         if stage.stage == count - 1 {
             commands.entity(melee_entity).remove::<MeleeStage>();
         }
         let offset_rot = melee_transform.rotation * (formula)(stage.stage);
-        info!("Offset_rot: {}", offset_rot);
         let rot_vec = offset_rot * Vec3::Y;
         let direction = Dir2::from_xy_unchecked(rot_vec.x, rot_vec.y);
-        info!("Direction: {}", direction);
         if let Some(hit) = spatial_q.cast_ray(
             melee_transform.translation.truncate(),
             direction,
@@ -89,7 +86,15 @@ pub fn ray_sweep_3d(
         melee_entity
     ) in &mut meleer_q {
         if stage.time_next_ray > time.elapsed_secs() { continue };
-        let direction = Dir3::new_unchecked( melee_transform.rotation * Vec3::Z);
+        let Melee::RaySweep {count, interval, formula}  = meleer.melee_type else { continue };
+        stage.time_next_ray += interval;
+        if stage.stage == count - 1 {
+            commands.entity(melee_entity).remove::<MeleeStage>();
+        }
+        let offset_rot = melee_transform.rotation * (formula)(stage.stage);
+        let rot_vec = offset_rot * Vec3::Y;
+        let direction = Dir3::from_xyz_unchecked(rot_vec.x, rot_vec.y, rot_vec.z);
+        info!("Direction: {}", direction);
         if let Some(hit) = spatial_q.cast_ray(
             melee_transform.translation,
             direction,
@@ -102,12 +107,10 @@ pub fn ray_sweep_3d(
                 source: melee_entity
             });
         }
-        if let Melee::RaySweep { count, interval, formula } = meleer.melee_type {
-            stage.stage += 1;
-            stage.time_next_ray += interval;
-            if stage.stage == count {
-                commands.entity(melee_entity).remove::<MeleeStage>();
-            }
-        }
+        stage.stage += 1;
+
+
+        //let direction = Dir3::new_unchecked( melee_transform.rotation * Vec3::Z);
+        
     }
 }

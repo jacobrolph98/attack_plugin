@@ -152,7 +152,6 @@ mod tests {
     #[test]
     fn sweep_hit_test() {
         let mut app = build_app();
-        let pi = std::f32::consts::PI;
         let meleer = app.world_mut().spawn((
             Name::new("Meleer"),
             Meleer {
@@ -188,17 +187,17 @@ mod tests {
         )).id();
         app.world_mut().spawn((
             Name::new("HitboxLeft"),
-            Transform::from_translation(Vec3::new(-2., 2., 0.)), // At 45 degree angle, offset ray from sweep should hit
+            Transform::from_translation(Vec3::new(-2., 2., 0.)), // At -45 degree angle, left offset ray from sweep should hit
             Collider::circle(1.)
         ));
         app.world_mut().spawn((
             Name::new("HitboxMid"),
-            Transform::from_translation(Vec3::new(0., 2.,0.)), // At 45 degree angle, offset ray from sweep should hit
+            Transform::from_translation(Vec3::new(0., 2.,0.)), // At 0 degree angle, middle ray from sweep should hit
             Collider::circle(1.)
         ));
         app.world_mut().spawn((
             Name::new("HitboxRight"),
-            Transform::from_translation(Vec3::new(2., 2., 0.)), // At 45 degree angle, offset ray from sweep should hit
+            Transform::from_translation(Vec3::new(2., 2., 0.)), // At 45 degree angle, right offset ray from sweep should hit
             Collider::circle(1.)
         ));
         app.world_mut().write_message(AttackMessage {
