@@ -20,7 +20,9 @@ pub fn start_melee(
                         time_next_ray: time.delta_secs()
                     });
                 },
-                Melee::Future => { }
+                Melee::Radius { line_of_sight } => { 
+
+                }
             }
         } else {
             continue 
@@ -44,17 +46,14 @@ pub fn ray_sweep_2d(
         melee_entity
     ) in &mut meleer_q {
         if stage.time_next_ray > time.elapsed_secs() { continue };
-        let mut interval_angle = meleer.angle_radians;
-        if let Melee::RaySweep { count, interval } = meleer.melee_type {
-            stage.time_next_ray += interval;
-            interval_angle = interval_angle / count as f32;
-            if stage.stage == count - 1 {
-                commands.entity(melee_entity).remove::<MeleeStage>();
-            }
+        info!("Stage: {}", stage.stage);
+        let Melee::RaySweep {count, interval, formula}  = meleer.melee_type else { continue };
+        stage.time_next_ray += interval;
+        if stage.stage == count - 1 {
+            commands.entity(melee_entity).remove::<MeleeStage>();
         }
-        let offset_angle = interval_angle * stage.stage as f32;
-        info!("Offset angle: {}", offset_angle);
-        let offset_rot = melee_transform.rotation * Quat::from_rotation_z(offset_angle);
+        let offset_rot = melee_transform.rotation * (formula)(stage.stage);
+        info!("Offset_rot: {}", offset_rot);
         let rot_vec = offset_rot * Vec3::Y;
         let direction = Dir2::from_xy_unchecked(rot_vec.x, rot_vec.y);
         info!("Direction: {}", direction);
@@ -103,7 +102,7 @@ pub fn ray_sweep_3d(
                 source: melee_entity
             });
         }
-        if let Melee::RaySweep { count, interval } = meleer.melee_type {
+        if let Melee::RaySweep { count, interval, formula } = meleer.melee_type {
             stage.stage += 1;
             stage.time_next_ray += interval;
             if stage.stage == count {
