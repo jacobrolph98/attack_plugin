@@ -5,6 +5,5 @@ edition.workspace = true
 
 [dependencies]
 attack_plugin_core = { path = "../../core/attack_plugin_core", version = "0.1.0", features = ["2d"] }
-attack_lightyear = { path = "../../net/attack_lightyear", version = "0.1.0" }
 bevy.workspace = true
 avian2d.workspace = true

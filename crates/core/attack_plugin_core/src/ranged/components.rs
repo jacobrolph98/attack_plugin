@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 #[derive(Component)]
 #[require(Transform)]
@@ -6,7 +7,7 @@ pub struct Shooter {
     pub projectile_speed: f32
 }
 
-#[derive(Component)]
+#[derive(Component, Serialize, Deserialize, Clone)]
 #[require(ProjectileSpeed)]
 pub struct Projectile {
     pub source: Entity,
@@ -14,6 +15,7 @@ pub struct Projectile {
 
 #[derive(Component)]
 pub struct ProjectileSpeed(pub f32);
+
 
 impl Default for ProjectileSpeed {
     fn default() -> Self {

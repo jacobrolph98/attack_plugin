@@ -4,4 +4,6 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+attack_plugin_core = { path = "../../core/attack_plugin_core", version = "0.1.0" }
 bevy.workspace = true
+lightyear = "0.30"
