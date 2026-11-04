@@ -9,5 +9,6 @@ pub struct AttackMessage {
 pub struct HitMessage {
     pub target: Entity,
     pub source: Entity,
+    pub distance: f32,
     // TODO normal
 }

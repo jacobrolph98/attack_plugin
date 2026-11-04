@@ -22,3 +22,6 @@ impl Default for ProjectileSpeed {
         ProjectileSpeed(1.)
     }
 }
+
+#[derive(Component)]
+pub struct ProjectileDistance(pub f32);

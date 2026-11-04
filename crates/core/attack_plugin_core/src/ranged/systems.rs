@@ -19,6 +19,7 @@ pub fn spawn_projectile(
                     source: shooter_entity
                 },
                 ProjectileSpeed(shooter.projectile_speed),
+                ProjectileDistance(0.),
                 shooter_transform.clone()
             ));
         } else {
@@ -29,7 +30,7 @@ pub fn spawn_projectile(
 
 #[cfg(feature = "2d")]
 pub fn step_projectile_2d(
-    mut projectile_q: Query<(&mut Transform, &ProjectileSpeed, &Projectile, Entity)>,
+    mut projectile_q: Query<(&mut Transform, &mut ProjectileDistance, &ProjectileSpeed, &Projectile, Entity)>,
     mut attack_w: MessageWriter<HitMessage>,
     mut commands: Commands,
     spatial_q: avian2d::spatial_query::SpatialQuery,
@@ -38,6 +39,7 @@ pub fn step_projectile_2d(
     let filter = avian2d::spatial_query::SpatialQueryFilter::default();
     for (
         mut transform, 
+        mut proj_distance,
         speed, 
         projectile,
         projectile_entity
@@ -65,19 +67,21 @@ pub fn step_projectile_2d(
         ) {
             attack_w.write(HitMessage {
                 target: hit.entity,
-                source: projectile.source
+                source: projectile.source,
+                distance: proj_distance.0
             });
             commands.entity(projectile_entity).despawn();
         } else {
             let offset = direction * distance;
             transform.translation += Vec3::new(offset.x, offset.y, 0.);
+            proj_distance.0 += distance;
         }
     }
 }
 
 #[cfg(feature = "3d")]
 pub fn step_projectile_3d(
-    mut projectile_q: Query<(&mut Transform, &ProjectileSpeed, &Projectile, Entity)>,
+    mut projectile_q: Query<(&mut Transform, &mut ProjectileDistance, &ProjectileSpeed, &Projectile, Entity)>,
     mut attack_w: MessageWriter<HitMessage>,
     mut commands: Commands,
     spatial_q: avian3d::spatial_query::SpatialQuery,
@@ -86,6 +90,7 @@ pub fn step_projectile_3d(
     let filter = avian3d::spatial_query::SpatialQueryFilter::default();
     for (
         mut transform, 
+        mut proj_distance,
         speed, 
         projectile,
         projectile_entity
@@ -111,13 +116,14 @@ pub fn step_projectile_3d(
         ) {
             attack_w.write(HitMessage {
                 target: hit.entity,
-                source: projectile.source
+                source: projectile.source,
+                distance: proj_distance.0
             });
             commands.entity(projectile_entity).despawn();
         } else {
             let offset = direction * distance;
             transform.translation += Vec3::new(offset.x, offset.y, offset.z);
-            info!("proj pos: {}", transform.translation);
+            proj_distance.0 += distance;
         }
     }
 }

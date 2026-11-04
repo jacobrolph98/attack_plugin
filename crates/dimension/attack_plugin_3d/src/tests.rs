@@ -1,17 +1,14 @@
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
-
-use attack_plugin_core::{melee::components::*, messages::*, plugin::AttackPlugin, ranged::components::*};
+    use attack_plugin_core::{melee::components::*, messages::*, plugin::AttackPlugin, ranged::components::*};
     use avian3d::prelude::*;
-    use bevy::{log::LogPlugin, mesh::MeshPlugin, prelude::*, time::TimeUpdateStrategy};
+    use bevy::{log::LogPlugin, mesh::MeshPlugin, prelude::*};
     
     fn build_app() -> App {
         let mut app = App::new();
         app.add_plugins((MinimalPlugins, LogPlugin::default(), AssetPlugin::default(), MeshPlugin));
-        app.add_plugins(PhysicsPlugins::default());
-        app.add_plugins(AttackPlugin);
-        app.insert_resource(TimeUpdateStrategy::ManualDuration(Duration::from_millis(16)));
+        app.add_plugins((PhysicsPlugins::default(), AttackPlugin));
         app.finish();
         app.cleanup();
         app
@@ -32,6 +29,15 @@ use attack_plugin_core::{melee::components::*, messages::*, plugin::AttackPlugin
         }
     }
 
+    fn step(app: &mut App) {
+        let delta = Duration::from_millis(16);
+        {
+            let mut time = app.world_mut().resource_mut::<Time>();
+            time.advance_by(delta);
+        }
+        app.world_mut().run_schedule(FixedUpdate);
+    }
+
     #[test]
     fn spawn_projectile_test() {
         let mut app = build_app();
@@ -45,8 +51,7 @@ use attack_plugin_core::{melee::components::*, messages::*, plugin::AttackPlugin
         app.world_mut().write_message(AttackMessage {
             source: shooter
         });
-        app.update();
-        app.update();
+        step(&mut app);
         let exists = app.world().iter_entities().any(|e| e.contains::<Projectile>());
         assert_eq!(exists, true);
     }
@@ -64,11 +69,47 @@ use attack_plugin_core::{melee::components::*, messages::*, plugin::AttackPlugin
         app.world_mut().write_message(AttackMessage {
             source: shooter
         });
-        app.update();
-        app.update();
+        step(&mut app);
         let mut query = app.world_mut().query::<(&Transform, &Projectile)>();
         let projectile_transform = query.single(app.world()).unwrap().0;
         assert_ne!(projectile_transform.translation, Vec3::ZERO);
+    }
+
+    #[test]
+    fn projectile_distance_test() {
+        let mut app = build_app();
+        let shooter = app.world_mut().spawn((
+            Name::new("Shooter"),
+            Shooter {
+                projectile_speed: 1.
+            },
+            Transform::default()
+        )).id();
+        app.world_mut().write_message(AttackMessage {
+            source: shooter
+        });
+        let mut last_distance = 0.;
+        step(&mut app);
+        {
+            let mut query = app.world_mut().query::<&ProjectileDistance>();
+            let projectile_distance = query.single(app.world()).unwrap().0;
+            assert_ne!(last_distance, projectile_distance);
+            last_distance = projectile_distance;
+        }
+        step(&mut app);
+        {
+            let mut query = app.world_mut().query::<&ProjectileDistance>();
+            let projectile_distance = query.single(app.world()).unwrap().0;
+            assert_ne!(last_distance, projectile_distance);
+            last_distance = projectile_distance;
+        }
+        step(&mut app);
+        {
+            let mut query = app.world_mut().query::<&ProjectileDistance>();
+            let projectile_distance = query.single(app.world()).unwrap().0;
+            assert_ne!(last_distance, projectile_distance);
+            last_distance = projectile_distance;
+        }
     }
 
      #[test]
@@ -89,12 +130,11 @@ use attack_plugin_core::{melee::components::*, messages::*, plugin::AttackPlugin
         app.world_mut().write_message(AttackMessage {
             source: shooter
         });
-        // Hitbox is far enough for 3 frames
-        app.update();
-        app.update();
-        app.update();
-        let hit_empty = app.world().resource::<Messages<HitMessage>>().is_empty();
-        assert_eq!(hit_empty, false);
+        // Hitbox is far enough for 2 frames
+        step(&mut app);
+        step(&mut app);
+        let hit_msgs = app.world().resource::<Messages<HitMessage>>().len();
+        assert_eq!(hit_msgs, 1);
         let exists = app.world().iter_entities().any(|e| e.contains::<Projectile>());
         assert_eq!(exists, false);
     }
@@ -113,8 +153,7 @@ use attack_plugin_core::{melee::components::*, messages::*, plugin::AttackPlugin
         app.world_mut().write_message(AttackMessage {
             source: meleer
         });
-        app.update();
-        app.update();
+        step(&mut app);
         let exists = app.world().iter_entities().any(|e| e.contains::<MeleeStage>());
         assert_eq!(exists, true);
     }
@@ -133,20 +172,19 @@ use attack_plugin_core::{melee::components::*, messages::*, plugin::AttackPlugin
         app.world_mut().write_message(AttackMessage {
             source: meleer
         });
-        app.update();
-        app.update();
+        step(&mut app);
         let mut query = app.world_mut().query::<&MeleeStage>();
         {
             let melee_stage = query.single(app.world()).unwrap();
             assert_eq!(melee_stage.stage, 1);
         }
-        app.update();
+        step(&mut app);
         let mut query = app.world_mut().query::<&MeleeStage>();
         {
             let melee_stage = query.single(app.world()).unwrap();
             assert_eq!(melee_stage.stage, 2);
         }
-        app.update();
+        step(&mut app);
         let exists = app.world().iter_entities().any(|e| e.contains::<MeleeStage>());
         assert_eq!(exists, false);
     }
@@ -164,20 +202,15 @@ use attack_plugin_core::{melee::components::*, messages::*, plugin::AttackPlugin
         )).id();
         app.world_mut().spawn((
             Name::new("Hitbox"),
-            Transform::from_translation(Vec3::new(0., 2., 0.)),
+            Transform::from_translation(Vec3::new(-2., 2., 0.)),
             Collider::sphere(1.)
         ));
         app.world_mut().write_message(AttackMessage {
             source: meleer
         });
-        app.update();
-        app.update();
-        app.update();
-        let hit_empty = app.world().resource::<Messages<HitMessage>>().is_empty();
-        if !hit_empty {
-            info!("hit found");
-        }
-        assert_eq!(hit_empty, false);
+        step(&mut app);
+        let hit_msgs = app.world().resource::<Messages<HitMessage>>().len();
+        assert_eq!(hit_msgs, 1); // First offset ray hits offset hitbox 
     }
 
     #[test]
@@ -209,17 +242,43 @@ use attack_plugin_core::{melee::components::*, messages::*, plugin::AttackPlugin
         app.world_mut().write_message(AttackMessage {
             source: meleer
         });
-        app.update();
-        app.update();
+        step(&mut app);
         let hits = app.world().resource::<Messages<HitMessage>>();
-        assert_eq!(hits.is_empty(), false);
-        app.update();
+        assert_eq!(hits.len(), 1);
+        step(&mut app);
         let hits = app.world().resource::<Messages<HitMessage>>();
-        assert_eq!(hits.is_empty(), false);
-        app.update();
+        assert_eq!(hits.len(), 2);
+        step(&mut app);
         let hits = app.world().resource::<Messages<HitMessage>>();
-        assert_eq!(hits.is_empty(), false);
-        app.update();
+        assert_eq!(hits.len(), 3);
+    }
 
+    #[test]
+    fn radius_hit_test() {
+        let mut app = build_app();
+        let meleer = app.world_mut().spawn((
+            Name::new("Meleer"),
+            Meleer {
+                melee_type: Melee::Radius { line_of_sight: false },
+                range: 3.,
+            },
+            Transform::default()
+        )).id();
+        app.world_mut().spawn((
+            Name::new("Hitbox1"),
+            Transform::from_translation(Vec3::new(0., 2., 0.)),
+            Collider::sphere(1.)
+        ));
+        app.world_mut().spawn((
+            Name::new("Hitbox2"),
+            Transform::from_translation(Vec3::new(0., 4.1, 0.)),
+            Collider::sphere(1.)
+        ));        
+        app.world_mut().write_message(AttackMessage {
+            source: meleer
+        });
+        step(&mut app);
+        let num_msgs = app.world().resource::<Messages<HitMessage>>().len();
+        assert_eq!(num_msgs, 1); // Hitbox 2 should be out of range, only 1 hit message
     }
 }
