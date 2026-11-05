@@ -11,7 +11,6 @@ impl Plugin for SweepPlugin {
                 start_sweep.in_set(AttackSet::Intent),
                 #[cfg(feature = "2d")]
                 ray_sweep_2d.in_set(AttackSet::Process),
-
                 #[cfg(feature = "3d")]
                 ray_sweep_3d.in_set(AttackSet::Process),
             ))

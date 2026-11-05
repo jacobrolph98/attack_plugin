@@ -102,7 +102,6 @@ mod tests {
             let mut query = app.world_mut().query::<&ProjectileDistance>();
             let projectile_distance = query.single(app.world()).unwrap().0;
             assert_ne!(last_distance, projectile_distance);
-            last_distance = projectile_distance;
         }
     }
 
