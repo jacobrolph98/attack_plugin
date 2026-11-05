@@ -7,8 +7,6 @@ edition.workspace = true
 default = []
 2d = ["dep:avian2d"]
 3d = ["dep:avian3d"]
-melee = []
-ranged = []
 
 [dependencies]
 bevy.workspace = true
