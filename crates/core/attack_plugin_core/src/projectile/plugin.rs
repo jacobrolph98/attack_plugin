@@ -1,11 +1,12 @@
 use bevy::prelude::*;
 
-use crate::{ranged::systems::*, sets::AttackSet};
+use crate::{projectile::{messages::SpawnProjectile, systems::*}, sets::AttackSet};
 
-pub struct RangedPlugin;
+pub struct ProjectilePlugin;
 
-impl Plugin for RangedPlugin {
+impl Plugin for ProjectilePlugin {
     fn build(&self, app: &mut App) {
+        app.add_message::<SpawnProjectile>();
         app.add_systems(FixedUpdate, (
             spawn_projectile.in_set(AttackSet::Intent),
             #[cfg(feature = "2d")]

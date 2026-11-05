@@ -1,19 +1,18 @@
 use bevy::prelude::*;
 
-use crate::{melee::plugin::MeleePlugin, messages::*, ranged::plugin::RangedPlugin, sets::AttackSet};
+use crate::{
+    messages::*, 
+    sets::AttackSet, 
+    projectile::plugin::ProjectilePlugin, 
+    radius::plugin::RadiusPlugin, 
+    sweep::plugin::SweepPlugin
+};
 
 pub struct AttackPlugin;
 
 impl Plugin for AttackPlugin {
     fn build(&self, app: &mut App) {
-        //#[cfg(feature = "ranged")]
-        app.add_plugins(RangedPlugin);
-        
-        //#[cfg(feature = "melee")]
-        app.add_plugins(MeleePlugin);
         app
-            //.add_plugins(ProtocolPlugin)
-            .add_message::<AttackMessage>()
             .add_message::<HitMessage>()
             .configure_sets(FixedUpdate, (
                 AttackSet::Intent, 
@@ -21,6 +20,6 @@ impl Plugin for AttackPlugin {
                 AttackSet::Result
             ).chain())
             ;
-        
+        app.add_plugins((ProjectilePlugin, RadiusPlugin, SweepPlugin));
     }
 }

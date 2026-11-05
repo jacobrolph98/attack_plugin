@@ -1,4 +1,4 @@
-use attack_plugin_core::ranged::components::Projectile;
+use attack_plugin_core::projectile::components::Projectile;
 use bevy::prelude::*;
 use lightyear::prelude::*;
 pub struct ProtocolPlugin;

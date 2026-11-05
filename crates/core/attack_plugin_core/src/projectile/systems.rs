@@ -1,36 +1,27 @@
 //use attack_plugin_math::{apply_offset, forward_direction, origin_from_translation};
 use bevy::prelude::*;
 
-use crate::{messages::*, ranged::components::*};
+use crate::{messages::*, projectile::{components::*, messages::*}};
 
 pub fn spawn_projectile(
-    mut attack_r: MessageReader<AttackMessage>,
+    mut spawn_r: MessageReader<SpawnProjectile>,
     mut commands: Commands,
-    shooter_q: Query<(&Transform, &Shooter, Entity)>,
 ) {
-    for attack in attack_r.read() {
-        if let Ok((
-            shooter_transform, 
-            shooter, 
-            shooter_entity
-        )) = shooter_q.get(attack.source) {
-            commands.spawn((
-                Projectile {
-                    source: shooter_entity
-                },
-                ProjectileSpeed(shooter.projectile_speed),
-                ProjectileDistance(0.),
-                shooter_transform.clone()
-            ));
-        } else {
-            continue 
-        }
+    for shot in spawn_r.read() {
+        commands.spawn((
+            Projectile {
+                source: shot.source
+            },
+            ProjectileSpeed(shot.speed),
+            ProjectileDistance(0.),
+            Transform::from_translation(shot.pos).with_rotation(shot.direction)
+        ));
     }
 }
 
 #[cfg(feature = "2d")]
 pub fn step_projectile_2d(
-    mut projectile_q: Query<(&mut Transform, &mut ProjectileDistance, &ProjectileSpeed, &Projectile, Entity)>,
+    mut projectile_q: Query<(&mut Transform, &mut ProjectileDistance, &ProjectileSpeed, Entity)>,
     mut attack_w: MessageWriter<HitMessage>,
     mut commands: Commands,
     spatial_q: avian2d::spatial_query::SpatialQuery,
@@ -41,7 +32,6 @@ pub fn step_projectile_2d(
         mut transform, 
         mut proj_distance,
         speed, 
-        projectile,
         projectile_entity
     ) in &mut projectile_q {
         let distance = speed.0 * time.delta_secs();
@@ -67,7 +57,7 @@ pub fn step_projectile_2d(
         ) {
             attack_w.write(HitMessage {
                 target: hit.entity,
-                source: projectile.source,
+                source: Some(projectile_entity),
                 distance: proj_distance.0
             });
             commands.entity(projectile_entity).despawn();
@@ -81,7 +71,7 @@ pub fn step_projectile_2d(
 
 #[cfg(feature = "3d")]
 pub fn step_projectile_3d(
-    mut projectile_q: Query<(&mut Transform, &mut ProjectileDistance, &ProjectileSpeed, &Projectile, Entity)>,
+    mut projectile_q: Query<(&mut Transform, &mut ProjectileDistance, &ProjectileSpeed, Entity)>,
     mut attack_w: MessageWriter<HitMessage>,
     mut commands: Commands,
     spatial_q: avian3d::spatial_query::SpatialQuery,
@@ -92,7 +82,6 @@ pub fn step_projectile_3d(
         mut transform, 
         mut proj_distance,
         speed, 
-        projectile,
         projectile_entity
     ) in &mut projectile_q {
         let distance = speed.0 * time.delta_secs();
@@ -116,7 +105,7 @@ pub fn step_projectile_3d(
         ) {
             attack_w.write(HitMessage {
                 target: hit.entity,
-                source: projectile.source,
+                source: Some(projectile_entity),
                 distance: proj_distance.0
             });
             commands.entity(projectile_entity).despawn();

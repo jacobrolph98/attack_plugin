@@ -1,9 +1,8 @@
 pub mod plugin;
 pub mod messages;
+pub mod components;
 pub mod sets;
 
-//#[cfg(feature = "ranged")]
-pub mod ranged;
-
-//#[cfg(feature = "melee")]
-pub mod melee;
+pub mod projectile;
+pub mod radius;
+pub mod sweep;

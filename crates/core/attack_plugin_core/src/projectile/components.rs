@@ -1,16 +1,10 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Component)]
-#[require(Transform)]
-pub struct Shooter {
-    pub projectile_speed: f32
-}
-
 #[derive(Component, Serialize, Deserialize, Clone)]
 #[require(ProjectileSpeed)]
 pub struct Projectile {
-    pub source: Entity,
+    pub source: Option<Entity>,
 }
 
 #[derive(Component)]

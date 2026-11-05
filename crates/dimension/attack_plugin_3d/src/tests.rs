@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
-    use attack_plugin_core::{melee::components::*, messages::*, plugin::AttackPlugin, ranged::components::*};
+    use attack_plugin_core::{
+        messages::*, plugin::AttackPlugin, projectile::{components::*, messages::*}, radius::messages::RadiusCheckMessage, sweep::{components::*, messages::*, types::*}
+    };
     use avian3d::prelude::*;
     use bevy::{log::LogPlugin, mesh::MeshPlugin, prelude::*};
     
@@ -41,15 +43,11 @@ mod tests {
     #[test]
     fn spawn_projectile_test() {
         let mut app = build_app();
-        let shooter = app.world_mut().spawn((
-            Name::new("Shooter"),
-            Shooter {
-                projectile_speed: 1.
-            },
-            Transform::default()
-        )).id();
-        app.world_mut().write_message(AttackMessage {
-            source: shooter
+        app.world_mut().write_message(SpawnProjectile {
+            pos: Vec3::ZERO,
+            direction: Quat::default(),
+            speed: 1.,
+            source: None
         });
         step(&mut app);
         let exists = app.world().iter_entities().any(|e| e.contains::<Projectile>());
@@ -59,15 +57,11 @@ mod tests {
     #[test]
     fn step_projectile_test() {
         let mut app = build_app();
-        let shooter = app.world_mut().spawn((
-            Name::new("Shooter"),
-            Shooter {
-                projectile_speed: 1.
-            },
-            Transform::default()
-        )).id();
-        app.world_mut().write_message(AttackMessage {
-            source: shooter
+        app.world_mut().write_message(SpawnProjectile {
+            pos: Vec3::ZERO,
+            direction: Quat::default(),
+            speed: 1.,
+            source: None
         });
         step(&mut app);
         let mut query = app.world_mut().query::<(&Transform, &Projectile)>();
@@ -78,15 +72,11 @@ mod tests {
     #[test]
     fn projectile_distance_test() {
         let mut app = build_app();
-        let shooter = app.world_mut().spawn((
-            Name::new("Shooter"),
-            Shooter {
-                projectile_speed: 1.
-            },
-            Transform::default()
-        )).id();
-        app.world_mut().write_message(AttackMessage {
-            source: shooter
+        app.world_mut().write_message(SpawnProjectile {
+            pos: Vec3::ZERO,
+            direction: Quat::default(),
+            speed: 1.,
+            source: None
         });
         let mut last_distance = 0.;
         step(&mut app);
@@ -115,20 +105,16 @@ mod tests {
      #[test]
     fn projectile_hit_test() {
         let mut app = build_app();
-        let shooter = app.world_mut().spawn((
-            Name::new("Shooter"),
-            Shooter {
-                projectile_speed: 50.
-            },
-            Transform::default()
-        )).id();
         app.world_mut().spawn((
             Name::new("Hitbox"),
             Collider::sphere(1.),
             Transform::from_translation(Vec3::new(0., 0., 2.))
         ));
-        app.world_mut().write_message(AttackMessage {
-            source: shooter
+        app.world_mut().write_message(SpawnProjectile {
+            pos: Vec3::ZERO,
+            direction: Quat::default(),
+            speed: 50.,
+            source: None
         });
         // Hitbox is far enough for 2 frames
         step(&mut app);
@@ -142,71 +128,133 @@ mod tests {
     #[test]
     fn begin_sweep_test() {
         let mut app = build_app();
-        let meleer = app.world_mut().spawn((
-            Name::new("Meleer"),
-            Meleer {
-                melee_type: Melee::RaySweep { count: 3, interval: 0.015, formula: test_sweep },
-                range: 3.,
-            },
+        let attachee = app.world_mut().spawn((
+            Name::new("Attachee"),
             Transform::default()
         )).id();
-        app.world_mut().write_message(AttackMessage {
-            source: meleer
-        });
+        app.world_mut().write_message_batch([
+            StartSweep {
+                attach: Attachment::Entity(attachee),
+                stats: Sweep {
+                    stages: 3,
+                    interval: 0.015,
+                    range: 1.,
+                    formula: test_sweep,
+                },
+            },
+            StartSweep {
+                attach: Attachment::Transform(Transform::default()),
+                stats: Sweep {
+                    stages: 3,
+                    interval: 0.015,
+                    range: 1.,
+                    formula: test_sweep,
+                },
+            }
+        ]);
         step(&mut app);
-        let exists = app.world().iter_entities().any(|e| e.contains::<MeleeStage>());
-        assert_eq!(exists, true);
+        {
+            // Test that sweep components successfuly appended to existing entity
+            let mut query = app.world_mut().query::<(&Sweeper, &SweepStage, &Name)>();
+            assert_eq!(query.single(app.world()).unwrap().2.as_str(), "Attachee");
+        }
+        {
+            // Test that sweep components successfully created new entity
+            let mut query = app.world_mut().query_filtered::<(&Sweeper, &SweepStage), Without<Name>>();
+            assert_eq!(query.single(app.world()).is_ok(), true);
+        }
+    }
+
+    #[test]
+    fn end_sweep_test() {
+        let mut app = build_app();
+        let attachee = app.world_mut().spawn((
+            Name::new("Attachee"),
+            Transform::default()
+        )).id();
+        app.world_mut().write_message_batch([
+            StartSweep {
+                attach: Attachment::Entity(attachee),
+                stats: Sweep {
+                    stages: 2,
+                    interval: 0.015,
+                    range: 1.,
+                    formula: test_sweep,
+                },
+            },
+            StartSweep {
+                attach: Attachment::Transform(Transform::default()),
+                stats: Sweep {
+                    stages: 2,
+                    interval: 0.015,
+                    range: 1.,
+                    formula: test_sweep,
+                },
+            }
+        ]);
+        step(&mut app);
+        let spawned_entity = {
+            let mut query = app.world_mut().query_filtered::<Entity, (With<Sweeper>, Without<Name>)>();
+            query.single(app.world()).unwrap()
+        };
+        step(&mut app);
+        {
+            // Test that sweep components removed themselves but attached entity remains
+            let mut query = app.world_mut().query_filtered::<&Name, (Without<Sweeper>, Without<SweepStage>)>();
+            assert_eq!(query.single(app.world()).is_ok(), true);
+        }
+        info!("First test done");
+        {
+            // Test that sweep components removed themselves and the entity they spawned
+            assert_eq!(app.world().get_entity(spawned_entity).is_ok(), false);
+        }
     }
 
     #[test]
     fn sweep_stage_test() {
         let mut app = build_app();
-        let meleer = app.world_mut().spawn((
-            Name::new("Meleer"),
-            Meleer {
-                melee_type: Melee::RaySweep { count: 3, interval: 0.0015, formula: test_sweep },
+        app.world_mut().write_message(StartSweep {
+            attach: Attachment::Transform(Transform::default()),
+            stats: Sweep {
+                stages: 3,
+                interval: 0.015,
                 range: 3.,
+                formula: test_sweep,
             },
-            Transform::default()
-        )).id();
-        app.world_mut().write_message(AttackMessage {
-            source: meleer
         });
         step(&mut app);
-        let mut query = app.world_mut().query::<&MeleeStage>();
+        let mut query = app.world_mut().query::<&SweepStage>();
         {
-            let melee_stage = query.single(app.world()).unwrap();
-            assert_eq!(melee_stage.stage, 1);
+            let stage = query.single(app.world()).unwrap();
+            assert_eq!(stage.stage, 1);
         }
         step(&mut app);
-        let mut query = app.world_mut().query::<&MeleeStage>();
+        let mut query = app.world_mut().query::<&SweepStage>();
         {
-            let melee_stage = query.single(app.world()).unwrap();
-            assert_eq!(melee_stage.stage, 2);
+            let stage = query.single(app.world()).unwrap();
+            assert_eq!(stage.stage, 2);
         }
         step(&mut app);
-        let exists = app.world().iter_entities().any(|e| e.contains::<MeleeStage>());
+        let exists = app.world().iter_entities().any(|e| e.contains::<SweepStage>());
         assert_eq!(exists, false);
     }
 
     #[test]
     fn sweep_hit_test() {
         let mut app = build_app();
-        let meleer = app.world_mut().spawn((
-            Name::new("Meleer"),
-            Meleer {
-                melee_type: Melee::RaySweep { count: 3, interval: 0.0015, formula: test_sweep },
-                range: 5.,
-            },
-            Transform::default()
-        )).id();
         app.world_mut().spawn((
             Name::new("Hitbox"),
             Transform::from_translation(Vec3::new(-2., 2., 0.)),
             Collider::sphere(1.)
         ));
-        app.world_mut().write_message(AttackMessage {
-            source: meleer
+        app.world_mut().write_message(StartSweep {
+            attach: Attachment::Transform(Transform::default()),
+            stats: Sweep {
+                stages: 3,
+                interval: 0.015,
+                range: 5.,
+                formula: test_sweep,
+            },
         });
         step(&mut app);
         let hit_msgs = app.world().resource::<Messages<HitMessage>>().len();
@@ -216,14 +264,6 @@ mod tests {
     #[test]
     fn sweep_angle_test() {
         let mut app = build_app();
-        let meleer = app.world_mut().spawn((
-            Name::new("Meleer"),
-            Meleer {
-                melee_type: Melee::RaySweep { count: 3, interval: 0.0015, formula: test_sweep },
-                range: 5.,
-            },
-            Transform::default()
-        )).id();
         app.world_mut().spawn((
             Name::new("HitboxLeft"),
             Transform::from_translation(Vec3::new(-2., 2., 0.)), // At -45 degree angle, left offset ray from sweep should hit
@@ -239,8 +279,14 @@ mod tests {
             Transform::from_translation(Vec3::new(2., 2., 0.)), // At 45 degree angle, right offset ray from sweep should hit
             Collider::sphere(1.)
         ));
-        app.world_mut().write_message(AttackMessage {
-            source: meleer
+        app.world_mut().write_message(StartSweep {
+            attach: Attachment::Transform(Transform::default()),
+            stats: Sweep {
+                stages: 3,
+                interval: 0.015,
+                range: 5.,
+                formula: test_sweep,
+            },
         });
         step(&mut app);
         let hits = app.world().resource::<Messages<HitMessage>>();
@@ -256,14 +302,6 @@ mod tests {
     #[test]
     fn radius_hit_test() {
         let mut app = build_app();
-        let meleer = app.world_mut().spawn((
-            Name::new("Meleer"),
-            Meleer {
-                melee_type: Melee::Radius { line_of_sight: false },
-                range: 3.,
-            },
-            Transform::default()
-        )).id();
         app.world_mut().spawn((
             Name::new("Hitbox1"),
             Transform::from_translation(Vec3::new(0., 2., 0.)),
@@ -274,8 +312,11 @@ mod tests {
             Transform::from_translation(Vec3::new(0., 4.1, 0.)),
             Collider::sphere(1.)
         ));        
-        app.world_mut().write_message(AttackMessage {
-            source: meleer
+        app.world_mut().write_message(RadiusCheckMessage {
+            pos: Vec3::ZERO,
+            radius: 3.,
+            line_of_sight: false,
+            source: None
         });
         step(&mut app);
         let num_msgs = app.world().resource::<Messages<HitMessage>>().len();
