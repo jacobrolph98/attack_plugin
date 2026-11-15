@@ -47,6 +47,7 @@ mod tests {
             pos: Vec3::ZERO,
             direction: Quat::default(),
             speed: 1.,
+            track: None,
             source: None
         });
         step(&mut app);
@@ -61,6 +62,7 @@ mod tests {
             pos: Vec3::ZERO,
             direction: Quat::default(),
             speed: 1.,
+            track: None,
             source: None
         });
         step(&mut app);
@@ -76,6 +78,7 @@ mod tests {
             pos: Vec3::ZERO,
             direction: Quat::default(),
             speed: 1.,
+            track: None,
             source: None
         });
         let mut last_distance = 0.;
@@ -113,6 +116,7 @@ mod tests {
             pos: Vec3::ZERO,
             direction: Quat::default(),
             speed: 50.,
+            track: None,
             source: None
         });
         // Hitbox is far enough for 2 frames
@@ -122,6 +126,75 @@ mod tests {
         assert_eq!(hit_msgs, 1);
         let exists = app.world().iter_entities().any(|e| e.contains::<Projectile>());
         assert_eq!(exists, false);
+    }
+
+    #[test]
+    fn spawn_track_projectile_test() {
+        let mut app = build_app();
+        app.world_mut().write_message(SpawnProjectile {
+            pos: Vec3::ZERO,
+            direction: Quat::default(),
+            speed: 0.,
+            track: Some((Vec3::splat(10.), 90.)),
+            source: None
+        });
+        step(&mut app);
+        let mut query = app.world_mut().query_filtered::<Entity, (With<ProjectileTrackPosition>, With<ProjectileTurnRate>)>();
+        assert_eq!(query.single(app.world()).is_ok(), true);
+    }
+
+    #[test]
+    fn projectile_turn_test() {
+        let mut app = build_app();
+        app.world_mut().write_message(SpawnProjectile {
+            pos: Vec3::ZERO,
+            direction: Quat::default(),
+            speed: 0.,
+            track: Some((Vec3::splat(10.), 90.)),
+            source: None
+        });
+        step(&mut app);
+        let initial_angle =  {
+            let mut query = app.world_mut().query_filtered::<&Transform, With<Projectile>>();
+            let proj_trans = query.single(app.world()).unwrap();
+            (proj_trans.rotation * Vec3::Z).angle_between((Vec3::splat(10.) - proj_trans.translation).normalize())
+        };
+        step(&mut app);
+        let next_angle =  {
+            let mut query = app.world_mut().query_filtered::<&Transform, With<Projectile>>();
+            let proj_trans = query.single(app.world()).unwrap();
+            (proj_trans.rotation * Vec3::Z).angle_between((Vec3::splat(10.) - proj_trans.translation).normalize())
+        };
+        assert!(next_angle < initial_angle);
+    }
+
+    #[test]
+    fn projectile_turn_rate_test() {
+        let mut app = build_app();
+        let angle_per_sec = 90.;
+        app.world_mut().write_message(SpawnProjectile {
+            pos: Vec3::ZERO,
+            direction: Quat::default(),
+            speed: 0.,
+            track: Some((Vec3::splat(10.), angle_per_sec)),
+            source: None
+        });
+        step(&mut app);
+        let first_rotation =  {
+            let mut query = app.world_mut().query_filtered::<&Transform, With<Projectile>>();
+            let proj_trans = query.single(app.world()).unwrap();
+            proj_trans.rotation
+        };
+        step(&mut app);
+        let second_rotation =  {
+            let mut query = app.world_mut().query_filtered::<&Transform, With<Projectile>>();
+            let proj_trans = query.single(app.world()).unwrap();
+            proj_trans.rotation
+        };
+        let angle = first_rotation.angle_between(second_rotation);
+        let max_angle = angle_per_sec * 0.016;
+        info!("real: {}, max: {}", angle, max_angle);
+        assert!(angle <= max_angle);
     }
 
     #[test]

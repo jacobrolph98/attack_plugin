@@ -27,7 +27,7 @@ pub fn radius_check_2d(
             let diff = hit_transform.translation.truncate() - check.pos.truncate();
             let distance = diff.length();
             if check.line_of_sight {
-
+                // TODO
             }
             hit_msgs.push(HitMessage {
                 target: *hit,

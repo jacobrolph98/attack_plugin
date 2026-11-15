@@ -8,14 +8,35 @@ pub fn spawn_projectile(
     mut commands: Commands,
 ) {
     for shot in spawn_r.read() {
-        commands.spawn((
+        let projectile = commands.spawn((
             Projectile {
                 source: shot.source
             },
             ProjectileSpeed(shot.speed),
             ProjectileDistance(0.),
             Transform::from_translation(shot.pos).with_rotation(shot.direction)
-        ));
+        )).id();
+        if let Some((track_pos, turn_radius)) = shot.track {
+            commands.entity(projectile).insert((
+                ProjectileTrackPosition(track_pos),
+                ProjectileTurnRate(turn_radius)
+            ));
+        }
+    }
+}
+
+pub fn rotate_projectile(
+    mut projectile_q: Query<(&mut Transform, &ProjectileTurnRate, &ProjectileTrackPosition)>,
+    time: Res<Time>,
+) {
+    for (mut transform, turn_radius, target_pos) in &mut projectile_q {
+        let dir = target_pos.0 - transform.translation;
+
+        //let target_rot = Transform::from_translation(transform.translation).looking_at(target_pos.0, Vec3::Y).rotation;
+
+        let target_rot = Quat::from_rotation_arc(Vec3::Z, dir.normalize());
+        let max_rot = turn_radius.0.to_radians() * time.delta_secs();
+        transform.rotation = transform.rotation.rotate_towards(target_rot, max_rot);
     }
 }
 
