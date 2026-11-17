@@ -47,6 +47,7 @@ pub fn ray_sweep_2d(
     time: Res<Time>,
 ) {
     let filter = avian2d::spatial_query::SpatialQueryFilter::default();
+    // TODO whether sweeps can be interrupted by hit count, or hit multiple targets
     for (
         mut stage, 
         sweeper, 

@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+/// Check targets within a range of a given radius of a position, triggering a Hit Message
 #[derive(Message)]
 pub struct RadiusCheckMessage {
     pub pos: Vec3,

@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+/// Spawn a projectile which will step a direction until hitting something, triggering a Hit Message
 #[derive(Message)]
 pub struct SpawnProjectile {
     pub pos: Vec3,

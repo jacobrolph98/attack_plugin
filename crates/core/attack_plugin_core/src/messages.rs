@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+/// Written when a target is hit by an entity
 #[derive(Message)]
 pub struct HitMessage {
     pub target: Entity,
