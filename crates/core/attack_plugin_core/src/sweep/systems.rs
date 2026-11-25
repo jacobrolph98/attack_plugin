@@ -10,16 +10,22 @@ pub fn start_sweep(
     for sweep in sweep_r.read() {
         match sweep.attach {
             Attachment::Entity(entity) => {
-                commands.entity(entity).insert(
+                let attached_entity = commands.entity(entity).insert(
                     sweep_bundle(sweep.stats.clone(), time.elapsed_secs())
-                );
+                ).id();
+                if let Some(src) = sweep.source {
+                    commands.entity(attached_entity).insert(SweepSource(src));
+                }
             }
             Attachment::Transform(transform) => {
-                commands.spawn((
+                let attached_entity = commands.spawn((
                     transform,
                     sweep_bundle(sweep.stats.clone(), time.elapsed_secs()),
                     DestroyOnSwept
-                ));
+                )).id();
+                if let Some(src) = sweep.source {
+                    commands.entity(attached_entity).insert(SweepSource(src));
+                }
             },
         }
     }
@@ -39,7 +45,7 @@ pub fn end_sweep(
 
 #[cfg(feature = "2d")]
 pub fn ray_sweep_2d(
-    mut sweeper_q: Query<(&mut SweepStage, &Sweeper, &Transform, Entity)>,
+    mut sweeper_q: Query<SweepQuery>,
     mut attack_w: MessageWriter<HitMessage>,
     mut commands: Commands,
     hit_q: Query<&Transform, Without<Sweeper>>,
@@ -48,26 +54,20 @@ pub fn ray_sweep_2d(
 ) {
     let filter = avian2d::spatial_query::SpatialQueryFilter::default();
     // TODO whether sweeps can be interrupted by hit count, or hit multiple targets
-    for (
-        mut stage, 
-        sweeper, 
-        sweep_transform,
-        sweeper_entity
-    ) in &mut sweeper_q {
-        if stage.time_next_ray > time.elapsed_secs() { continue };
-        info!("Do 1 sweep ray");
-        stage.time_next_ray += sweeper.0.interval;
-        if stage.stage == sweeper.0.stages - 1 {
-            commands.entity(sweeper_entity).remove::<SweepStage>();
+    for mut sweep in &mut sweeper_q {
+        if sweep.stage.time_next_ray > time.elapsed_secs() { continue };
+        sweep.stage.time_next_ray += sweep.sweeper.0.interval;
+        if sweep.stage.stage == sweep.sweeper.0.stages - 1 {
+            commands.entity(sweep.entity).remove::<SweepStage>();
         }
-        let offset_rot = sweep_transform.rotation * (sweeper.0.formula)(stage.stage);
+        let offset_rot = sweep.transform.rotation * (sweep.sweeper.0.formula)(sweep.stage.stage);
         let rot_vec = offset_rot * Vec3::Y;
         let direction = Dir2::from_xy_unchecked(rot_vec.x, rot_vec.y);
-        let sweep_pos = sweep_transform.translation.truncate();
+        let sweep_pos = sweep.transform.translation.truncate();
         if let Some(hit) = spatial_q.cast_ray(
             sweep_pos,
             direction,
-            sweeper.0.range,
+            sweep.sweeper.0.range,
             true,
             &filter
         ) {
@@ -75,17 +75,17 @@ pub fn ray_sweep_2d(
             let diff = hit_transform.translation.truncate() - sweep_pos;
             attack_w.write(HitMessage {
                 target: hit.entity,
-                source: Some(sweeper_entity),
+                source: sweep.source.map(|s| s.0),
                 distance: diff.length()
             });
         }
-        stage.stage += 1;
+        sweep.stage.stage += 1;
     }
 }
 
 #[cfg(feature = "3d")]
 pub fn ray_sweep_3d(
-    mut sweeper_q: Query<(&mut SweepStage, &Sweeper, &Transform, Entity)>,
+    mut sweeper_q: Query<SweepQuery>,
     mut attack_w: MessageWriter<HitMessage>,
     mut commands: Commands,
     hit_q: Query<&Transform, Without<Sweeper>>,
@@ -93,25 +93,20 @@ pub fn ray_sweep_3d(
     time: Res<Time>,
 ) {
     let filter = avian3d::spatial_query::SpatialQueryFilter::default();
-    for (
-        mut stage, 
-        sweeper, 
-        sweep_transform,
-        sweeper_entity
-    ) in &mut sweeper_q {
-        if stage.time_next_ray > time.elapsed_secs() { continue };
-        stage.time_next_ray += sweeper.0.interval;
-        if stage.stage == sweeper.0.stages - 1 {
-            commands.entity(sweeper_entity).remove::<SweepStage>();
+    for mut sweep in &mut sweeper_q {
+        if sweep.stage.time_next_ray > time.elapsed_secs() { continue };
+        sweep.stage.time_next_ray += sweep.sweeper.0.interval;
+        if sweep.stage.stage == sweep.sweeper.0.stages - 1 {
+            commands.entity(sweep.entity).remove::<SweepStage>();
         }
-        let offset_rot = sweep_transform.rotation * (sweeper.0.formula)(stage.stage);
+        let offset_rot = sweep.transform.rotation * (sweep.sweeper.0.formula)(sweep.stage.stage);
         let rot_vec = offset_rot * Vec3::Y;
         let direction = Dir3::from_xyz_unchecked(rot_vec.x, rot_vec.y, rot_vec.z);
-        let sweep_pos = sweep_transform.translation;
+        let sweep_pos = sweep.transform.translation;
         if let Some(hit) = spatial_q.cast_ray(
             sweep_pos,
             direction,
-            sweeper.0.range,
+            sweep.sweeper.0.range,
             true,
             &filter
         ) {
@@ -119,10 +114,10 @@ pub fn ray_sweep_3d(
             let diff = hit_transform.translation - sweep_pos;
             attack_w.write(HitMessage {
                 target: hit.entity,
-                source: Some(sweeper_entity),
+                source: sweep.source.map(|s| s.0),
                 distance: diff.length()
             });
         }
-        stage.stage += 1;
+        sweep.stage.stage += 1;
     }
 }

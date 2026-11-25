@@ -5,5 +5,6 @@ use crate::sweep::types::*;
 #[derive(Message)]
 pub struct StartSweep {
     pub attach: Attachment,
-    pub stats: Sweep
+    pub stats: Sweep,
+    pub source: Option<Entity>,
 }

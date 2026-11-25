@@ -10,8 +10,8 @@ Checks for colliders intersecting with a circle/sphere.
 radius_msg.write(RadiusCheckMessage {
     pos: Vec3::ZERO,
     radius: 3.,
-    line_of_sight: false,
-    source: None
+    line_of_sight: false, // Not yet implemented
+    source: None // Should point to entity who's components should dictate how to react to a hit
 });
 ```
 
@@ -44,6 +44,7 @@ sweep_msg.write(StartSweep {
         range: 5.,
         formula: test_sweep,
     },
+    source: None
 });
 ```
 

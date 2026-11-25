@@ -217,6 +217,7 @@ mod tests {
                     range: 1.,
                     formula: test_sweep,
                 },
+                source: None
             },
             StartSweep {
                 attach: Attachment::Transform(Transform::default()),
@@ -226,6 +227,7 @@ mod tests {
                     range: 1.,
                     formula: test_sweep,
                 },
+                source: None
             }
         ]);
         step(&mut app);
@@ -257,6 +259,7 @@ mod tests {
                     range: 1.,
                     formula: test_sweep,
                 },
+                source: None
             },
             StartSweep {
                 attach: Attachment::Transform(Transform::default()),
@@ -266,6 +269,7 @@ mod tests {
                     range: 1.,
                     formula: test_sweep,
                 },
+                source: None
             }
         ]);
         step(&mut app);
@@ -279,7 +283,6 @@ mod tests {
             let mut query = app.world_mut().query_filtered::<&Name, (Without<Sweeper>, Without<SweepStage>)>();
             assert_eq!(query.single(app.world()).is_ok(), true);
         }
-        info!("First test done");
         {
             // Test that sweep components removed themselves and the entity they spawned
             assert_eq!(app.world().get_entity(spawned_entity).is_ok(), false);
@@ -297,6 +300,7 @@ mod tests {
                 range: 3.,
                 formula: test_sweep,
             },
+            source: None
         });
         step(&mut app);
         let mut query = app.world_mut().query::<&SweepStage>();
@@ -331,6 +335,7 @@ mod tests {
                 range: 3.,
                 formula: test_sweep,
             },
+            source: None
         });
         step(&mut app);
         let hit_msgs = app.world().resource::<Messages<HitMessage>>().len();
@@ -363,6 +368,7 @@ mod tests {
                 range: 5.,
                 formula: test_sweep,
             },
+            source: None
         });
         step(&mut app);
         let hits = app.world().resource::<Messages<HitMessage>>();

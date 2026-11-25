@@ -13,6 +13,10 @@ pub struct SweepStage{
     pub time_next_ray: f32
 }
 
+/// Points to entity that sources components to dictate how to react to a hit
+#[derive(Component)]
+pub struct SweepSource(pub Entity);
+
 /// Whether the sweeper should erase the entity it is attached to when done sweeping
 #[derive(Component)]
 pub struct DestroyOnSwept;
