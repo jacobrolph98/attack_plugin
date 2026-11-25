@@ -3,6 +3,18 @@ This library implements means of processing various kinds of attacks.
 Each attack writes a 'HitMessage' on contact which the developer should read.
 For each attack and hit, 'source' should point to the entity making the attack, so the developer can determine what the hit should do.
 
+```
+fn hit(
+    mut hit_msg: MessageReader<HitMessage>
+) {
+    for hit in hit_msg.read() {
+        if let Some(src_entity) = hit.source {
+            info!("Entity hit");
+        }
+    }
+}
+```
+
 ### Radius
 Given a Position, Radius & whether to consider line of sight;
 Checks for colliders intersecting with a circle/sphere.
